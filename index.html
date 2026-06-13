@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Regex Studio</title>
+<meta name="description" content="Build, test, and understand JavaScript regular expressions in your browser. Live match highlighting, plain-English explanation, structure diagram, substitution preview, and a ReDoS warning. No server, no tracking.">
+<link rel="canonical" href="https://0xelitesystem.github.io/regex-studio/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Regex Studio">
+<meta property="og:description" content="Build, test, and understand JavaScript regular expressions in your browser. Live highlighting, explanation, structure diagram, substitution, and a ReDoS warning.">
+<meta property="og:url" content="https://0xelitesystem.github.io/regex-studio/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Regex Studio">
+<meta name="twitter:description" content="Build, test, and understand JavaScript regular expressions in your browser.">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Regex Studio",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Any (browser)",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "url": "https://0xelitesystem.github.io/regex-studio/",
+  "author": {
+    "@type": "Person",
+    "name": "0xelitesystem",
+    "url": "https://elitesystem.ai"
+  }
+}
+</script>
+<style>
+:root {
+  --bg: #fafaf6;
+  --surface: #ffffff;
+  --ink: #0a1d1e;
+  --ink-soft: #2c4a4c;
+  --rule: #c8d4d3;
+  --teal: #0f5c60;
+  --teal-deep: #0a4548;
+  --gold: #b07d2a;
+  --gold-deep: #8a611f;
+  --ok: #1a5c2e;
+  --warn: #8a5a00;
+  --err: #8b1a1a;
+  --code-bg: #f0ebe1;
+  --hl: #ffe08a;
+  --hl-alt: #b8e0c8;
+  --hl-ink: #1a1500;
+  --tok-lit: #2660a8;
+  --tok-class: #b03d8f;
+  --tok-quant: #8a611f;
+  --tok-anchor: #3a6b1f;
+  --tok-group: #6a3da8;
+}
+[data-theme="dark"] {
+  --bg: #0c1c1d;
+  --surface: #14292a;
+  --ink: #e8ebe6;
+  --ink-soft: #b0c0bd;
+  --rule: #2a4042;
+  --teal: #4ab4ba;
+  --teal-deep: #6dc8ce;
+  --gold: #d4a155;
+  --gold-deep: #e6b876;
+  --ok: #6dd380;
+  --warn: #d4a155;
+  --err: #e88080;
+  --code-bg: #0a1718;
+  --hl: #6b5a14;
+  --hl-alt: #1f4a30;
+  --hl-ink: #fff4d0;
+  --tok-lit: #6da8e0;
+  --tok-class: #d97ab8;
+  --tok-quant: #d4a155;
+  --tok-anchor: #8ec870;
+  --tok-group: #b08ce0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  line-height: 1.55;
+}
+.wrap { max-width: 1100px; margin: 0 auto; }
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 2px solid var(--teal);
+  padding-bottom: 1rem;
+  margin-bottom: 2rem;
+}
+h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--teal);
+}
+.tag {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.75rem;
+  color: var(--gold-deep);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+[data-theme="dark"] .tag { color: var(--gold); }
+.theme-btn {
+  background: transparent;
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.theme-btn:hover { border-color: var(--teal); color: var(--teal); }
+.lede {
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+  margin-bottom: 1.75rem;
+  max-width: 64ch;
+}
+.input-box {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  border-radius: 3px;
+}
+label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.pattern-line {
+  display: flex;
+  align-items: stretch;
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.95rem;
+}
+.pattern-line:focus-within { outline: 2px solid var(--teal); outline-offset: 1px; }
+.delim {
+  display: flex;
+  align-items: center;
+  padding: 0 0.6rem;
+  color: var(--ink-soft);
+  font-size: 1.1rem;
+  user-select: none;
+}
+#pattern {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--ink);
+  padding: 0.7rem 0;
+  font-family: inherit;
+  font-size: inherit;
+}
+#pattern:focus { outline: none; }
+.flag-edit {
+  width: 5.5rem;
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--rule);
+  color: var(--gold-deep);
+  padding: 0.7rem 0.6rem;
+  font-family: inherit;
+  font-size: inherit;
+}
+[data-theme="dark"] .flag-edit { color: var(--gold); }
+.flag-edit:focus { outline: none; }
+.flags-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+  flex-wrap: wrap;
+}
+.flag-toggle {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.8rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink-soft);
+  cursor: pointer;
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  min-width: 3.2rem;
+}
+.flag-toggle .fl { font-weight: 700; font-size: 0.9rem; }
+.flag-toggle .fd { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.flag-toggle.on {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: var(--surface);
+}
+[data-theme="dark"] .flag-toggle.on { color: var(--bg); }
+.flag-toggle:hover { border-color: var(--teal); }
+.regex-error {
+  color: var(--err);
+  font-size: 0.85rem;
+  margin-top: 0.85rem;
+  padding: 0.65rem;
+  background: var(--code-bg);
+  border-left: 3px solid var(--err);
+  border-radius: 2px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  display: none;
+}
+.regex-error.show { display: block; }
+.redos-warn {
+  color: var(--warn);
+  font-size: 0.85rem;
+  margin-top: 0.85rem;
+  padding: 0.65rem;
+  background: var(--code-bg);
+  border-left: 3px solid var(--warn);
+  border-radius: 2px;
+  display: none;
+}
+.redos-warn.show { display: block; }
+.redos-warn strong { color: var(--warn); }
+.lib-row {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.lib-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); margin-right: 0.25rem; }
+.lib-btn {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.78rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  border-radius: 2px;
+}
+.lib-btn:hover { border-color: var(--gold); color: var(--gold-deep); }
+[data-theme="dark"] .lib-btn:hover { color: var(--gold); }
+.section {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  border-radius: 3px;
+}
+.section-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.match-count {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+#test-text {
+  width: 100%;
+  min-height: 140px;
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  color: var(--ink);
+  padding: 0.85rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  resize: vertical;
+  border-radius: 2px;
+}
+#test-text:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+.highlight-box {
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0.85rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-top: 0.85rem;
+  min-height: 3rem;
+  overflow-x: auto;
+}
+.highlight-box mark {
+  background: var(--hl);
+  color: var(--hl-ink);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.highlight-box mark.alt { background: var(--hl-alt); }
+.no-match {
+  font-family: ui-serif, Georgia, serif;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+.match-list {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.match-item {
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0.7rem 0.85rem;
+  background: var(--code-bg);
+}
+.match-head {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  margin-bottom: 0.4rem;
+}
+.match-head .m-text { color: var(--hl-ink); background: var(--hl); padding: 0 3px; border-radius: 2px; word-break: break-all; }
+.groups {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.8rem;
+  margin-top: 0.45rem;
+}
+.g-key { color: var(--ink-soft); }
+.g-val { color: var(--ink); word-break: break-all; }
+.g-val.empty { color: var(--ink-soft); font-style: italic; }
+.explain-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.exp-row {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.85rem;
+  align-items: baseline;
+  padding: 0.3rem 0;
+  border-bottom: 1px dotted var(--rule);
+}
+.exp-row:last-child { border-bottom: none; }
+.exp-tok {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: pre;
+  word-break: break-all;
+}
+.exp-desc { font-size: 0.85rem; color: var(--ink-soft); }
+.exp-desc.unknown { color: var(--warn); font-style: italic; }
+.t-literal { color: var(--tok-lit); }
+.t-class { color: var(--tok-class); }
+.t-quant { color: var(--tok-quant); }
+.t-anchor { color: var(--tok-anchor); }
+.t-group { color: var(--tok-group); }
+.t-alt { color: var(--err); }
+.diagram-box {
+  margin-top: 0.5rem;
+  overflow-x: auto;
+  padding: 0.5rem 0;
+}
+.diagram-box svg { display: block; }
+.diagram-fallback {
+  font-family: ui-serif, Georgia, serif;
+  color: var(--ink-soft);
+  font-style: italic;
+  font-size: 0.85rem;
+}
+.rail { stroke: var(--ink-soft); stroke-width: 1.5; fill: none; }
+.node-box { fill: var(--surface); stroke: var(--teal); stroke-width: 1.5; }
+.node-class { fill: var(--surface); stroke: var(--tok-class); stroke-width: 1.5; }
+.node-anchor { fill: var(--surface); stroke: var(--tok-anchor); stroke-width: 1.5; }
+.node-text { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; fill: var(--ink); }
+.node-label { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 9px; fill: var(--ink-soft); }
+.group-frame { fill: none; stroke: var(--tok-group); stroke-width: 1; stroke-dasharray: 3 2; }
+.sub-row { display: flex; flex-direction: column; gap: 0.5rem; }
+#replacement {
+  width: 100%;
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  color: var(--ink);
+  padding: 0.7rem 0.85rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.85rem;
+  border-radius: 2px;
+}
+#replacement:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+.sub-output {
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0.85rem;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-top: 0.5rem;
+  min-height: 3rem;
+}
+.hint { font-size: 0.78rem; color: var(--ink-soft); margin-top: 0.4rem; }
+footer {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+footer a { color: var(--teal); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+.privacy-note {
+  font-size: 0.78rem;
+  color: var(--gold-deep);
+  margin-top: 0.75rem;
+}
+[data-theme="dark"] .privacy-note { color: var(--gold); }
+@media (max-width: 640px) {
+  body { padding: 1rem 0.75rem; }
+  h1 { font-size: 1.4rem; }
+  .exp-row, .groups { grid-template-columns: 1fr; gap: 0.1rem; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>Regex Studio</h1>
+    <div class="tag">JavaScript / ECMAScript regex, in your browser</div>
+  </div>
+  <button class="theme-btn" id="theme-toggle" type="button">Dark</button>
+</header>
+
+<p class="lede">Write a regular expression and see it light up your test text live. Get a plain-English breakdown, a structure diagram, a substitution preview, and a heads-up if the pattern looks prone to catastrophic backtracking. This runs the browser's native JavaScript regex engine, so what you see here is exactly what your JavaScript code will do.</p>
+
+<div class="input-box">
+  <label for="pattern">Pattern</label>
+  <div class="pattern-line">
+    <span class="delim">/</span>
+    <input id="pattern" type="text" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="\b\w+@\w+\.\w+\b">
+    <span class="delim">/</span>
+    <input id="flag-edit" class="flag-edit" type="text" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="flags" aria-label="flags">
+  </div>
+  <div class="flags-row" id="flags-row">
+    <button class="flag-toggle" data-flag="g" type="button"><span class="fl">g</span><span class="fd">global</span></button>
+    <button class="flag-toggle" data-flag="i" type="button"><span class="fl">i</span><span class="fd">ignore case</span></button>
+    <button class="flag-toggle" data-flag="m" type="button"><span class="fl">m</span><span class="fd">multiline</span></button>
+    <button class="flag-toggle" data-flag="s" type="button"><span class="fl">s</span><span class="fd">dotall</span></button>
+    <button class="flag-toggle" data-flag="u" type="button"><span class="fl">u</span><span class="fd">unicode</span></button>
+    <button class="flag-toggle" data-flag="y" type="button"><span class="fl">y</span><span class="fd">sticky</span></button>
+  </div>
+  <div class="regex-error" id="regex-error"></div>
+  <div class="redos-warn" id="redos-warn"></div>
+  <div class="lib-row" id="lib-row">
+    <span class="lib-label">Load a tested pattern</span>
+  </div>
+  <div class="privacy-note">Everything runs locally in your browser. Your pattern and test text are never sent anywhere.</div>
+</div>
+
+<div class="section">
+  <div class="section-title">
+    <span>Test text &amp; live matches</span>
+    <span class="match-count" id="match-count"></span>
+  </div>
+  <textarea id="test-text" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+  <div class="highlight-box" id="highlight-box"></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Match details</div>
+  <div class="match-list" id="match-list"></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Explanation</div>
+  <div class="explain-list" id="explain-list"></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Structure diagram</div>
+  <div class="diagram-box" id="diagram-box"></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Substitution preview</div>
+  <div class="sub-row">
+    <label for="replacement">Replacement</label>
+    <input id="replacement" type="text" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="$1 / $&lt;name&gt; / $&amp; / literal text">
+    <div class="hint">Uses <code>String.prototype.replace</code>. Refer to groups with <code>$1</code> (numbered) or <code>$&lt;name&gt;</code> (named). <code>$&amp;</code> is the whole match. With the <code>g</code> flag every match is replaced, otherwise only the first.</div>
+    <div class="sub-output" id="sub-output"></div>
+  </div>
+</div>
+
+<footer>
+  <div>Regex Studio. Open source, MIT licensed. <a href="https://github.com/0xelitesystem/regex-studio" target="_blank" rel="noopener">View source</a>.</div>
+  <div>JavaScript / ECMAScript flavor only.</div>
+</footer>
+</div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+
+/* ---------- Theme ---------- */
+const themeBtn = $("theme-toggle");
+function setTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  themeBtn.textContent = t === "dark" ? "Light" : "Dark";
+}
+themeBtn.addEventListener("click", () => {
+  const cur = document.documentElement.getAttribute("data-theme") || "light";
+  setTheme(cur === "dark" ? "light" : "dark");
+});
+(function initTheme() {
+  const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  setTheme(prefersDark ? "dark" : "light");
+})();
+
+/* ---------- Escaping ---------- */
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/* ---------- State ---------- */
+const ORDER = ["g", "i", "m", "s", "u", "y"];
+let flags = "g";
+
+/* ---------- Pattern library (each tested against the JS engine) ---------- */
+const LIBRARY = [
+  { name: "email", pattern: "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", flags: "g",
+    sample: "Reach me at jane.doe@example.com or sales@my-shop.co.uk, not at not-an-email." },
+  { name: "URL", pattern: "https?:\\/\\/[^\\s/$.?#].[^\\s]*", flags: "gi",
+    sample: "See https://elitesystem.ai/docs?ref=1 and http://example.org. Plain text is ignored." },
+  { name: "IPv4", pattern: "\\b(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\\b", flags: "g",
+    sample: "Valid: 192.168.0.1 and 8.8.8.8. Invalid: 256.1.1.1 and 10.0.0." },
+  { name: "hex color", pattern: "#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\\b", flags: "g",
+    sample: "Colors: #fff, #0a1d1e, #B07D2A. Not a color: #12 or #ggg." },
+  { name: "ISO date", pattern: "\\b\\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])\\b", flags: "g",
+    sample: "Dates: 2026-06-13 and 1999-12-31. Bad: 2026-13-01 and 2026-6-1." },
+  { name: "slug", pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$", flags: "gm",
+    sample: "regex-studio\njwt-inspector\nNot A Slug\ntrailing-dash-" }
+];
+
+/* ============================================================
+   TOKENIZER  +  EXPLAINER
+   Parses an ECMAScript pattern source into a flat token list
+   and builds an AST for the diagram. Honest about unknowns.
+   ============================================================ */
+
+const NAMED_CLASS = {
+  "\\d": "any digit (0 to 9)",
+  "\\D": "any character that is not a digit",
+  "\\w": "any word character (letter, digit, or underscore)",
+  "\\W": "any character that is not a word character",
+  "\\s": "any whitespace character",
+  "\\S": "any character that is not whitespace",
+  "\\b": "a word boundary",
+  "\\B": "a position that is not a word boundary"
+};
+const ESCAPED_LITERAL = {
+  "\\n": "a newline", "\\r": "a carriage return", "\\t": "a tab",
+  "\\f": "a form feed", "\\v": "a vertical tab", "\\0": "a NUL character"
+};
+
+// Returns { tokens: [...], ast: node } or throws on a structural problem we choose to surface.
+function parsePattern(src) {
+  let i = 0;
+  const tokens = [];
+
+  function peek(o = 0) { return src[i + o]; }
+
+  // Parse a [...] character class. Assumes src[i] === '['.
+  function readCharClass() {
+    const start = i;
+    i++; // consume [
+    let negated = false;
+    if (src[i] === "^") { negated = true; i++; }
+    // Leading ] is a literal
+    if (src[i] === "]") { i++; }
+    while (i < src.length && src[i] !== "]") {
+      if (src[i] === "\\") i += 2; else i++;
+    }
+    if (i < src.length && src[i] === "]") i++; // consume ]
+    const raw = src.slice(start, i);
+    const inner = raw.slice(negated ? 2 : 1, raw.length - 1);
+    return { type: "class", raw, negated, inner };
+  }
+
+  // Parse a quantifier if one starts at i. Returns null if none.
+  function readQuantifier() {
+    const c = src[i];
+    if (c === "*" || c === "+" || c === "?") {
+      i++;
+      let lazy = false;
+      if (src[i] === "?") { lazy = true; i++; }
+      return { kind: c, lazy };
+    }
+    if (c === "{") {
+      // {n}, {n,}, {n,m}
+      const m = /^\{(\d+)(,(\d*)?)?\}/.exec(src.slice(i));
+      if (m) {
+        i += m[0].length;
+        let lazy = false;
+        if (src[i] === "?") { lazy = true; i++; }
+        return { kind: "{}", raw: m[0], min: m[1], hasComma: m[2] != null, max: m[3], lazy };
+      }
+    }
+    return null;
+  }
+
+  function quantDesc(q) {
+    let base;
+    if (q.kind === "*") base = "zero or more times";
+    else if (q.kind === "+") base = "one or more times";
+    else if (q.kind === "?") base = "optionally (zero or one time)";
+    else {
+      if (!q.hasComma) base = "exactly " + q.min + " time" + (q.min === "1" ? "" : "s");
+      else if (q.max === "" || q.max == null || q.max === undefined) base = q.min + " or more times";
+      else base = "between " + q.min + " and " + q.max + " times";
+      // distinguish {n,} (hasComma, empty max) handled above
+    }
+    if (q.lazy) base += " (lazy, as few as possible)";
+    return base;
+  }
+
+  // Parse one "atom" (a single matchable unit) and any quantifier on it.
+  // Pushes token(s). Used by the linear tokenizer.
+  function readAtom() {
+    const c = src[i];
+
+    if (c === "(") {
+      // Group. Determine its kind from the prefix.
+      let label, cls = "t-group", gType = "group";
+      if (src.startsWith("(?:", i)) { label = "(?:"; i += 3; describeGroupOpen("a non-capturing group"); return; }
+      if (src.startsWith("(?=", i)) { label = "(?="; i += 3; describeGroupOpen("a positive lookahead (followed by)"); return; }
+      if (src.startsWith("(?!", i)) { label = "(?!"; i += 3; describeGroupOpen("a negative lookahead (not followed by)"); return; }
+      if (src.startsWith("(?<=", i)) { label = "(?<="; i += 4; describeGroupOpen("a positive lookbehind (preceded by)"); return; }
+      if (src.startsWith("(?<!", i)) { label = "(?<!"; i += 4; describeGroupOpen("a negative lookbehind (not preceded by)"); return; }
+      const named = /^\(\?<([A-Za-z_$][\w$]*)>/.exec(src.slice(i));
+      if (named) { i += named[0].length; describeGroupOpen('start of named capturing group "' + named[1] + '"'); return; }
+      // plain capture group
+      i += 1;
+      describeGroupOpen("start of a capturing group");
+      return;
+    }
+    if (c === ")") {
+      i++;
+      const q = readQuantifier();
+      pushTok(")" + (q ? quantRaw(q) : ""), "t-group", "end of group" + (q ? ", repeated " + quantDesc(q) : ""));
+      return;
+    }
+    if (c === "|") {
+      i++;
+      pushTok("|", "t-alt", "OR: match either the expression before or the expression after");
+      return;
+    }
+    if (c === "^") { i++; pushTok("^", "t-anchor", "start of the string (or line, with the m flag)"); return; }
+    if (c === "$") { i++; pushTok("$", "t-anchor", "end of the string (or line, with the m flag)"); return; }
+
+    if (c === ".") {
+      i++;
+      const q = readQuantifier();
+      pushTok("." + (q ? quantRaw(q) : ""), "t-class",
+        "any character except a line terminator (any character at all with the s flag)" + (q ? ", " + quantDesc(q) : ""));
+      return;
+    }
+
+    if (c === "[") {
+      const cc = readCharClass();
+      const q = readQuantifier();
+      const desc = (cc.negated ? "any character NOT in the set: " : "any single character in the set: ") + describeClassInner(cc.inner);
+      pushTok(cc.raw + (q ? quantRaw(q) : ""), "t-class", desc + (q ? ", " + quantDesc(q) : ""));
+      return;
+    }
+
+    if (c === "\\") {
+      const next = src[i + 1];
+      // backreference \1..\9
+      if (/[1-9]/.test(next)) {
+        const m = /^\\(\d+)/.exec(src.slice(i));
+        i += m[0].length;
+        const q = readQuantifier();
+        pushTok(m[0] + (q ? quantRaw(q) : ""), "t-group", "a backreference to capturing group " + m[1] + (q ? ", " + quantDesc(q) : ""));
+        return;
+      }
+      // named backreference \k<name>
+      if (next === "k" && src[i + 2] === "<") {
+        const m = /^\\k<([A-Za-z_$][\w$]*)>/.exec(src.slice(i));
+        if (m) {
+          i += m[0].length;
+          const q = readQuantifier();
+          pushTok(m[0] + (q ? quantRaw(q) : ""), "t-group", 'a backreference to named group "' + m[1] + '"' + (q ? ", " + quantDesc(q) : ""));
+          return;
+        }
+      }
+      const two = "\\" + next;
+      if (NAMED_CLASS[two]) {
+        i += 2;
+        const q = readQuantifier();
+        const isBoundary = two === "\\b" || two === "\\B";
+        pushTok(two + (q ? quantRaw(q) : ""), isBoundary ? "t-anchor" : "t-class",
+          NAMED_CLASS[two] + (q && !isBoundary ? ", " + quantDesc(q) : ""));
+        return;
+      }
+      if (ESCAPED_LITERAL[two]) {
+        i += 2;
+        const q = readQuantifier();
+        pushTok(two + (q ? quantRaw(q) : ""), "t-literal", "the literal character " + ESCAPED_LITERAL[two] + (q ? ", " + quantDesc(q) : ""));
+        return;
+      }
+      // \xHH, \uHHHH, \u{...}
+      let m = /^\\x([0-9a-fA-F]{2})/.exec(src.slice(i)) ||
+              /^\\u([0-9a-fA-F]{4})/.exec(src.slice(i)) ||
+              /^\\u\{([0-9a-fA-F]+)\}/.exec(src.slice(i));
+      if (m) {
+        i += m[0].length;
+        const q = readQuantifier();
+        pushTok(m[0] + (q ? quantRaw(q) : ""), "t-literal", "the character with hex code " + m[1] + (q ? ", " + quantDesc(q) : ""));
+        return;
+      }
+      // \p{...} \P{...} unicode property (requires u flag)
+      m = /^\\([pP])\{([^}]+)\}/.exec(src.slice(i));
+      if (m) {
+        i += m[0].length;
+        const q = readQuantifier();
+        pushTok(m[0] + (q ? quantRaw(q) : ""), "t-class",
+          (m[1] === "p" ? "any character with Unicode property " : "any character WITHOUT Unicode property ") + m[2] + " (needs the u flag)" + (q ? ", " + quantDesc(q) : ""));
+        return;
+      }
+      // generic escaped literal: \. \* \\ etc.
+      if (next !== undefined) {
+        i += 2;
+        const q = readQuantifier();
+        pushTok(two + (q ? quantRaw(q) : ""), "t-literal", "the literal character " + JSON.stringify(next) + (q ? ", " + quantDesc(q) : ""));
+        return;
+      }
+      // dangling backslash
+      i += 1;
+      pushTok("\\", "t-literal", "a trailing backslash (likely a mistake)", true);
+      return;
+    }
+
+    // plain literal character
+    i++;
+    const q = readQuantifier();
+    pushTok(c + (q ? quantRaw(q) : ""), "t-literal", "the literal character " + JSON.stringify(c) + (q ? ", " + quantDesc(q) : ""));
+  }
+
+  function quantRaw(q) {
+    if (q.kind === "{}") return q.raw + (q.lazy ? "?" : "");
+    return q.kind + (q.lazy ? "?" : "");
+  }
+  function pushTok(text, cls, desc, unknown) {
+    tokens.push({ text, cls, desc, unknown: !!unknown });
+  }
+  function describeGroupOpen(desc) {
+    // groups can themselves carry a quantifier only after ), so just push open
+    pushTok(currentGroupRaw(), "t-group", desc);
+  }
+  let lastGroupStart = 0;
+  function currentGroupRaw() {
+    const raw = src.slice(lastGroupStart, i);
+    lastGroupStart = i;
+    return raw;
+  }
+
+  // Linear tokenization
+  lastGroupStart = 0;
+  while (i < src.length) {
+    const before = i;
+    lastGroupStart = i;
+    readAtom();
+    if (i === before) { i++; } // safety: never loop forever
+  }
+
+  return { tokens };
+}
+
+function describeClassInner(inner) {
+  // Produce a short readable description of a char-class body.
+  const parts = [];
+  let j = 0;
+  while (j < inner.length) {
+    // range like a-z
+    const rangeM = /^(\\.|[^\\])-(\\.|[^\\])/.exec(inner.slice(j));
+    if (rangeM && inner[j + (rangeM[1].length)] === "-") {
+      parts.push(cleanClassPiece(rangeM[1]) + " to " + cleanClassPiece(rangeM[2]));
+      j += rangeM[0].length;
+      continue;
+    }
+    if (inner[j] === "\\") {
+      const two = inner.slice(j, j + 2);
+      if (NAMED_CLASS[two]) parts.push(NAMED_CLASS[two]);
+      else if (ESCAPED_LITERAL[two]) parts.push(ESCAPED_LITERAL[two]);
+      else parts.push(JSON.stringify(inner[j + 1]));
+      j += 2;
+      continue;
+    }
+    parts.push(JSON.stringify(inner[j]));
+    j++;
+  }
+  return parts.join(", ");
+}
+function cleanClassPiece(p) {
+  if (p.startsWith("\\")) {
+    if (ESCAPED_LITERAL[p]) return ESCAPED_LITERAL[p];
+    return JSON.stringify(p[1]);
+  }
+  return JSON.stringify(p);
+}
+
+/* ============================================================
+   STRUCTURE DIAGRAM
+   Builds a light AST (sequence / alternation / group / quantified
+   atom) and renders an SVG. Degrades gracefully on anything it
+   cannot confidently lay out.
+   ============================================================ */
+
+function buildAst(src) {
+  let i = 0;
+  let groupCounter = 0;
+
+  function parseAlternation() {
+    const branches = [parseSequence()];
+    while (src[i] === "|") { i++; branches.push(parseSequence()); }
+    if (branches.length === 1) return branches[0];
+    return { type: "alt", branches };
+  }
+
+  function parseSequence() {
+    const items = [];
+    while (i < src.length && src[i] !== "|" && src[i] !== ")") {
+      const atom = parseAtom();
+      if (atom === null) break;
+      items.push(atom);
+    }
+    return { type: "seq", items };
+  }
+
+  function readQuant() {
+    const c = src[i];
+    if (c === "*" || c === "+" || c === "?") {
+      i++;
+      let lazy = false; if (src[i] === "?") { lazy = true; i++; }
+      return { label: c + (lazy ? "?" : "") };
+    }
+    if (c === "{") {
+      const m = /^\{\d+(,\d*)?\}/.exec(src.slice(i));
+      if (m) { i += m[0].length; let lazy = false; if (src[i] === "?") { lazy = true; i++; } return { label: m[0] + (lazy ? "?" : "") }; }
+    }
+    return null;
+  }
+
+  function parseAtom() {
+    const c = src[i];
+    if (c === undefined) return null;
+
+    if (c === "(") {
+      let groupLabel, capturing = false;
+      if (src.startsWith("(?:", i)) { i += 3; groupLabel = "group"; }
+      else if (src.startsWith("(?=", i)) { i += 3; groupLabel = "lookahead"; }
+      else if (src.startsWith("(?!", i)) { i += 3; groupLabel = "neg lookahead"; }
+      else if (src.startsWith("(?<=", i)) { i += 4; groupLabel = "lookbehind"; }
+      else if (src.startsWith("(?<!", i)) { i += 4; groupLabel = "neg lookbehind"; }
+      else {
+        const named = /^\(\?<([A-Za-z_$][\w$]*)>/.exec(src.slice(i));
+        if (named) { i += named[0].length; capturing = true; groupCounter++; groupLabel = "group <" + named[1] + ">"; }
+        else { i += 1; capturing = true; groupCounter++; groupLabel = "group " + groupCounter; }
+      }
+      const inner = parseAlternation();
+      if (src[i] === ")") i++; else throw new Error("unbalanced");
+      const q = readQuant();
+      return { type: "group", label: groupLabel, child: inner, quant: q ? q.label : null };
+    }
+
+    if (c === "[") {
+      const start = i; i++;
+      if (src[i] === "^") i++;
+      if (src[i] === "]") i++;
+      while (i < src.length && src[i] !== "]") { if (src[i] === "\\") i += 2; else i++; }
+      if (src[i] === "]") i++;
+      const raw = src.slice(start, i);
+      const q = readQuant();
+      return { type: "atom", kind: "class", text: raw, quant: q ? q.label : null };
+    }
+
+    if (c === "^" || c === "$") { i++; return { type: "atom", kind: "anchor", text: c, quant: null }; }
+    if (c === ".") { i++; const q = readQuant(); return { type: "atom", kind: "dot", text: ".", quant: q ? q.label : null }; }
+
+    if (c === "\\") {
+      const two = src.slice(i, i + 2);
+      i += 2;
+      const isAnchor = two === "\\b" || two === "\\B";
+      const q = readQuant();
+      return { type: "atom", kind: isAnchor ? "anchor" : "escape", text: two, quant: q ? q.label : null };
+    }
+
+    if (c === ")" || c === "|") return null;
+
+    // plain literal: greedily collect a run of plain literals (no quantifier on the run)
+    let start = i;
+    while (i < src.length && !"(|)[].\\^$*+?{".includes(src[i])) i++;
+    // but if next char is a quantifier, the LAST literal owns it. Step back one if needed.
+    if (i > start && (src[i] === "*" || src[i] === "+" || src[i] === "?" || src[i] === "{")) {
+      if (i - 1 > start) {
+        // emit the run minus last char as one node, then handle last char separately on next call
+        const text = src.slice(start, i - 1);
+        i = i - 1;
+        return { type: "atom", kind: "literal", text, quant: null };
+      }
+    }
+    if (i === start) { i++; return { type: "atom", kind: "literal", text: c, quant: null }; }
+    const text = src.slice(start, i);
+    const q = readQuant();
+    return { type: "atom", kind: "literal", text, quant: q ? q.label : null };
+  }
+
+  const ast = parseAlternation();
+  if (i < src.length) throw new Error("did not consume entire pattern");
+  return ast;
+}
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+const NODE_H = 30, V_GAP = 14, PAD = 10, CHAR_W = 7.2, LABEL_H = 12;
+
+function measure(node) {
+  if (node.type === "seq") {
+    if (node.items.length === 0) {
+      node.w = 40; node.h = NODE_H; return node;
+    }
+    let w = 0, h = 0;
+    for (const it of node.items) { measure(it); w += it.w + 14; h = Math.max(h, it.h); }
+    w -= 14;
+    node.w = w; node.h = h; return node;
+  }
+  if (node.type === "alt") {
+    let w = 0, h = 0;
+    for (const b of node.branches) { measure(b); w = Math.max(w, b.w); h += b.h + V_GAP; }
+    h -= V_GAP;
+    node.w = w + 50; node.h = h; return node;
+  }
+  if (node.type === "group") {
+    measure(node.child);
+    node.w = node.child.w + 2 * PAD + (node.quant ? 18 : 0);
+    node.h = node.child.h + 2 * PAD + LABEL_H + (node.quant ? 4 : 0);
+    return node;
+  }
+  // atom
+  const len = Math.max(node.text.length, 1);
+  node.w = Math.max(28, len * CHAR_W + 16);
+  node.h = NODE_H + (node.quant ? LABEL_H : 0);
+  return node;
+}
+
+function render(node, x, y, svg) {
+  // y is the vertical center line for this node
+  if (node.type === "seq") {
+    if (node.items.length === 0) {
+      line(svg, x, y, x + node.w, y);
+      return;
+    }
+    let cx = x;
+    for (let k = 0; k < node.items.length; k++) {
+      const it = node.items[k];
+      render(it, cx, y, svg);
+      cx += it.w;
+      if (k < node.items.length - 1) { line(svg, cx, y, cx + 14, y); cx += 14; }
+    }
+    return;
+  }
+  if (node.type === "alt") {
+    const leftX = x, rightX = x + node.w;
+    const junctL = x + 18, junctR = rightX - 18;
+    let cy = y - node.h / 2;
+    line(svg, leftX, y, junctL, y);
+    line(svg, junctR, y, rightX, y);
+    for (const b of node.branches) {
+      const by = cy + b.h / 2;
+      const bx = junctL + ((junctR - junctL) - b.w) / 2;
+      // connectors
+      curve(svg, junctL, y, junctL + 10, by, bx, by);
+      render(b, bx, by, svg);
+      curve(svg, bx + b.w, by, junctR - 10, by, junctR, y);
+      cy += b.h + V_GAP;
+    }
+    return;
+  }
+  if (node.type === "group") {
+    const fx = x, fy = y - node.h / 2;
+    rect(svg, fx, fy, node.w, node.h, "group-frame", 4);
+    text(svg, fx + 4, fy + 9, node.label + (node.quant ? "  " + node.quant : ""), "node-label");
+    line(svg, x, y, x + PAD, y);
+    const childCenterY = fy + LABEL_H + PAD + node.child.h / 2;
+    render(node.child, fx + PAD, childCenterY, svg);
+    line(svg, x + node.w - PAD, y, x + node.w, y);
+    return;
+  }
+  // atom
+  const boxH = NODE_H;
+  const fx = x, fy = y - boxH / 2;
+  let cls = "node-box";
+  if (node.kind === "class" || node.kind === "dot" || node.kind === "escape") cls = "node-class";
+  if (node.kind === "anchor") cls = "node-anchor";
+  const rounded = node.kind === "anchor" ? 14 : 4;
+  rect(svg, fx, fy, node.w, boxH, cls, rounded);
+  text(svg, fx + node.w / 2, fy + boxH / 2 + 4, node.text, "node-text", "middle");
+  if (node.quant) {
+    text(svg, fx + node.w / 2, fy + boxH + 10, node.quant, "node-label", "middle");
+  }
+}
+
+function line(svg, x1, y1, x2, y2) {
+  const l = document.createElementNS(SVG_NS, "line");
+  l.setAttribute("x1", x1); l.setAttribute("y1", y1);
+  l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+  l.setAttribute("class", "rail");
+  svg.appendChild(l);
+}
+function curve(svg, x1, y1, x2, y2, x3) {
+  const p = document.createElementNS(SVG_NS, "path");
+  p.setAttribute("d", "M " + x1 + " " + y1 + " C " + ((x1 + x2) / 2) + " " + y1 + " " + ((x1 + x2) / 2) + " " + y2 + " " + x2 + " " + y2 + " L " + x3 + " " + y2);
+  p.setAttribute("class", "rail");
+  svg.appendChild(p);
+}
+function rect(svg, x, y, w, h, cls, r) {
+  const rc = document.createElementNS(SVG_NS, "rect");
+  rc.setAttribute("x", x); rc.setAttribute("y", y);
+  rc.setAttribute("width", w); rc.setAttribute("height", h);
+  rc.setAttribute("rx", r || 0); rc.setAttribute("class", cls);
+  svg.appendChild(rc);
+}
+function text(svg, x, y, str, cls, anchor) {
+  const t = document.createElementNS(SVG_NS, "text");
+  t.setAttribute("x", x); t.setAttribute("y", y);
+  t.setAttribute("class", cls);
+  if (anchor) t.setAttribute("text-anchor", anchor);
+  t.textContent = str;
+  svg.appendChild(t);
+}
+
+function renderDiagram(src) {
+  const box = $("diagram-box");
+  box.innerHTML = "";
+  if (!src) {
+    box.innerHTML = '<span class="diagram-fallback">Enter a pattern to see its structure.</span>';
+    return;
+  }
+  let ast;
+  try {
+    ast = buildAst(src);
+  } catch (e) {
+    box.innerHTML = '<span class="diagram-fallback">This pattern is too complex to diagram cleanly. The explanation above still applies.</span>';
+    return;
+  }
+  try {
+    measure(ast);
+    const totalW = ast.w + 60, totalH = ast.h + 40;
+    if (totalW > 4000 || totalH > 2000) {
+      box.innerHTML = '<span class="diagram-fallback">This pattern is large; see the explanation above for the full breakdown.</span>';
+      return;
+    }
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("width", totalW);
+    svg.setAttribute("height", totalH);
+    svg.setAttribute("viewBox", "0 0 " + totalW + " " + totalH);
+    const cy = totalH / 2;
+    // start cap
+    line(svg, 10, cy, 30, cy);
+    render(ast, 30, cy, svg);
+    line(svg, 30 + ast.w, cy, 30 + ast.w + 20, cy);
+    box.appendChild(svg);
+  } catch (e) {
+    box.innerHTML = '<span class="diagram-fallback">This pattern is too complex to diagram cleanly. The explanation above still applies.</span>';
+  }
+}
+
+/* ============================================================
+   ReDoS HEURISTIC
+   Flags shapes prone to catastrophic backtracking:
+   - nested quantifiers: a quantified group whose body is itself
+     quantified, e.g. (a+)+ , (a*)* , (\d+)+
+   - overlapping alternation under a quantifier, e.g. (a|a)*
+   Heuristic only; absence of a warning is not a guarantee.
+   ============================================================ */
+function redosCheck(src) {
+  const findings = [];
+  // Scan for groups followed by a quantifier, then inspect the body.
+  for (let i = 0; i < src.length; i++) {
+    if (src[i] !== "(") continue;
+    // find matching close paren
+    let depth = 0, j = i, inClass = false;
+    for (; j < src.length; j++) {
+      const ch = src[j];
+      if (ch === "\\") { j++; continue; }
+      if (inClass) { if (ch === "]") inClass = false; continue; }
+      if (ch === "[") { inClass = true; continue; }
+      if (ch === "(") depth++;
+      else if (ch === ")") { depth--; if (depth === 0) break; }
+    }
+    if (depth !== 0) break; // unbalanced; let the engine report it
+    const after = src[j + 1];
+    const groupQuantified = after === "*" || after === "+" || (after === "{" && /^\{\d+,?\d*\}/.test(src.slice(j + 1)));
+    if (!groupQuantified) continue;
+    const body = src.slice(i + 1, j).replace(/^\?(:|=|!|<=|<!|<[A-Za-z_$][\w$]*>)/, "");
+    // nested quantifier inside the body, applied to a token (not inside a class)
+    if (hasFreeQuantifier(body)) {
+      findings.push("a repeated group whose contents are themselves repeated (for example " + "(a+)+ style)");
+    } else if (overlappingAlternation(body)) {
+      findings.push("a repeated group with overlapping alternatives (for example (a|a)* style)");
+    }
+  }
+  return findings;
+}
+function hasFreeQuantifier(body) {
+  let inClass = false;
+  for (let k = 0; k < body.length; k++) {
+    const ch = body[k];
+    if (ch === "\\") { k++; continue; }
+    if (inClass) { if (ch === "]") inClass = false; continue; }
+    if (ch === "[") { inClass = true; continue; }
+    if (ch === "*" || ch === "+") return true;
+    if (ch === "{" && /^\{\d*,\d*\}|^\{\d+,\}/.test(body.slice(k))) return true;
+  }
+  return false;
+}
+function overlappingAlternation(body) {
+  // crude: split top-level alternatives and look for duplicates / common prefixes
+  const alts = splitTopAlt(body);
+  if (alts.length < 2) return false;
+  const seen = new Set();
+  for (const a of alts) {
+    const t = a.trim();
+    if (seen.has(t) && t.length) return true;
+    seen.add(t);
+  }
+  return false;
+}
+function splitTopAlt(body) {
+  const out = []; let depth = 0, inClass = false, cur = "";
+  for (let k = 0; k < body.length; k++) {
+    const ch = body[k];
+    if (ch === "\\") { cur += ch + (body[k + 1] || ""); k++; continue; }
+    if (inClass) { cur += ch; if (ch === "]") inClass = false; continue; }
+    if (ch === "[") { inClass = true; cur += ch; continue; }
+    if (ch === "(") { depth++; cur += ch; continue; }
+    if (ch === ")") { depth--; cur += ch; continue; }
+    if (ch === "|" && depth === 0) { out.push(cur); cur = ""; continue; }
+    cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+
+/* ============================================================
+   MATCH ENGINE
+   Live highlight, match list, substitution. Zero-length-match
+   guard prevents the classic global-flag infinite loop.
+   ============================================================ */
+
+function buildRegex(src, fl) {
+  // returns { re } or { error }
+  try {
+    return { re: new RegExp(src, fl) };
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+function collectMatches(re, text) {
+  const matches = [];
+  if (re.global || re.sticky) {
+    re.lastIndex = 0;
+    let m;
+    let guard = 0;
+    while ((m = re.exec(text)) !== null) {
+      matches.push(m);
+      // zero-length-match guard: if the match is empty, advance lastIndex by one
+      if (m.index === re.lastIndex) {
+        re.lastIndex++;
+      }
+      if (++guard > 100000) break; // hard cap, defensive
+      if (re.lastIndex > text.length) break;
+    }
+  } else {
+    const m = re.exec(text);
+    if (m) matches.push(m);
+  }
+  return matches;
+}
+
+function renderHighlight(text, matches) {
+  const box = $("highlight-box");
+  if (!text) { box.innerHTML = '<span class="no-match">Type some test text above to see matches.</span>'; return; }
+  if (matches.length === 0) { box.innerHTML = escapeHtml(text); return; }
+  let html = "";
+  let pos = 0;
+  let alt = false;
+  for (const m of matches) {
+    const start = m.index;
+    const end = m.index + m[0].length;
+    if (start < pos) continue; // overlap safety
+    html += escapeHtml(text.slice(pos, start));
+    if (m[0].length === 0) {
+      // zero-length match marker
+      html += '<mark class="' + (alt ? "alt" : "") + '" title="zero-length match">​</mark>';
+    } else {
+      html += '<mark class="' + (alt ? "alt" : "") + '">' + escapeHtml(m[0]) + "</mark>";
+    }
+    pos = end;
+    alt = !alt;
+  }
+  html += escapeHtml(text.slice(pos));
+  box.innerHTML = html;
+}
+
+function renderMatchList(matches) {
+  const list = $("match-list");
+  list.innerHTML = "";
+  if (matches.length === 0) {
+    list.innerHTML = '<div class="no-match">No match.</div>';
+    return;
+  }
+  matches.forEach((m, idx) => {
+    const item = document.createElement("div");
+    item.className = "match-item";
+
+    const head = document.createElement("div");
+    head.className = "match-head";
+    const display = m[0].length === 0 ? "(empty match)" : '<span class="m-text">' + escapeHtml(m[0]) + "</span>";
+    head.innerHTML = "Match " + (idx + 1) + " at index " + m.index + ": " + display;
+    item.appendChild(head);
+
+    // capture groups
+    if (m.length > 1 || (m.groups && Object.keys(m.groups).length)) {
+      const grid = document.createElement("div");
+      grid.className = "groups";
+      for (let g = 1; g < m.length; g++) {
+        const k = document.createElement("div"); k.className = "g-key"; k.textContent = "group " + g;
+        const v = document.createElement("div");
+        if (m[g] === undefined) { v.className = "g-val empty"; v.textContent = "(did not participate)"; }
+        else if (m[g] === "") { v.className = "g-val empty"; v.textContent = "(empty)"; }
+        else { v.className = "g-val"; v.textContent = m[g]; }
+        grid.appendChild(k); grid.appendChild(v);
+      }
+      if (m.groups) {
+        for (const name of Object.keys(m.groups)) {
+          const k = document.createElement("div"); k.className = "g-key"; k.textContent = "<" + name + ">";
+          const v = document.createElement("div");
+          const val = m.groups[name];
+          if (val === undefined) { v.className = "g-val empty"; v.textContent = "(did not participate)"; }
+          else if (val === "") { v.className = "g-val empty"; v.textContent = "(empty)"; }
+          else { v.className = "g-val"; v.textContent = val; }
+          grid.appendChild(k); grid.appendChild(v);
+        }
+      }
+      item.appendChild(grid);
+    }
+    list.appendChild(item);
+  });
+}
+
+function renderExplanation(src) {
+  const list = $("explain-list");
+  list.innerHTML = "";
+  if (!src) { list.innerHTML = '<div class="no-match">Enter a pattern to see a token-by-token explanation.</div>'; return; }
+  let result;
+  try { result = parsePattern(src); }
+  catch (e) { list.innerHTML = '<div class="no-match">Could not tokenize this pattern.</div>'; return; }
+  if (!result.tokens.length) { list.innerHTML = '<div class="no-match">Empty pattern.</div>'; return; }
+  for (const tok of result.tokens) {
+    const row = document.createElement("div");
+    row.className = "exp-row";
+    const t = document.createElement("div");
+    t.className = "exp-tok " + tok.cls;
+    t.textContent = tok.text;
+    const d = document.createElement("div");
+    d.className = "exp-desc" + (tok.unknown ? " unknown" : "");
+    d.textContent = tok.desc;
+    row.appendChild(t); row.appendChild(d);
+    list.appendChild(row);
+  }
+}
+
+function renderSubstitution(re, text) {
+  const out = $("sub-output");
+  const repl = $("replacement").value;
+  if (!re) { out.textContent = ""; return; }
+  if (!repl && repl !== "") { out.textContent = ""; return; }
+  try {
+    // Use a fresh regex so we never mutate the shared lastIndex.
+    const r = new RegExp(re.source, re.flags);
+    const result = text.replace(r, repl);
+    out.textContent = result;
+  } catch (e) {
+    out.textContent = "";
+    out.innerHTML = '<span class="no-match">Replacement failed: ' + escapeHtml(e.message) + "</span>";
+  }
+}
+
+/* ============================================================
+   ORCHESTRATION
+   ============================================================ */
+function syncFlagButtons() {
+  document.querySelectorAll(".flag-toggle").forEach((btn) => {
+    const f = btn.getAttribute("data-flag");
+    btn.classList.toggle("on", flags.includes(f));
+  });
+  $("flag-edit").value = flags;
+}
+function normalizeFlags(str) {
+  const out = [];
+  for (const f of ORDER) if (str.includes(f)) out.push(f);
+  return out.join("");
+}
+
+function run() {
+  const src = $("pattern").value;
+  const errBox = $("regex-error");
+  const redosBox = $("redos-warn");
+
+  // ReDoS heuristic (independent of compilation)
+  if (src) {
+    const findings = redosCheck(src);
+    if (findings.length) {
+      redosBox.classList.add("show");
+      redosBox.innerHTML = "<strong>Possible catastrophic backtracking.</strong> This pattern contains " +
+        escapeHtml([...new Set(findings)].join(" and ")) +
+        ". On certain non-matching inputs the JavaScript engine can take exponential time. Consider an atomic redesign or a possessive-style rewrite. This is a heuristic; absence of a warning is not a guarantee of safety.";
+    } else {
+      redosBox.classList.remove("show");
+      redosBox.innerHTML = "";
+    }
+  } else {
+    redosBox.classList.remove("show");
+  }
+
+  // Explanation + diagram are independent of valid compilation, but
+  // need a parseable source. They handle their own errors.
+  renderExplanation(src);
+  renderDiagram(src);
+
+  const text = $("test-text").value;
+  const built = buildRegex(src, flags);
+
+  if (built.error) {
+    errBox.classList.add("show");
+    errBox.textContent = "Invalid pattern: " + built.error;
+    $("match-count").textContent = "";
+    // still show the raw text un-highlighted so the page never looks broken
+    $("highlight-box").innerHTML = text ? escapeHtml(text) : '<span class="no-match">Type some test text above to see matches.</span>';
+    $("match-list").innerHTML = '<div class="no-match">Fix the pattern to see matches.</div>';
+    $("sub-output").textContent = "";
+    return;
+  }
+  errBox.classList.remove("show");
+  errBox.textContent = "";
+
+  let matches;
+  try {
+    matches = collectMatches(built.re, text);
+  } catch (e) {
+    errBox.classList.add("show");
+    errBox.textContent = "Matching failed: " + e.message;
+    matches = [];
+  }
+
+  renderHighlight(text, matches);
+  renderMatchList(matches);
+  renderSubstitution(built.re, text);
+
+  if (!text) $("match-count").textContent = "";
+  else $("match-count").textContent = matches.length + (matches.length === 1 ? " match" : " matches");
+}
+
+/* ---------- Wiring ---------- */
+document.querySelectorAll(".flag-toggle").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const f = btn.getAttribute("data-flag");
+    if (flags.includes(f)) flags = flags.replace(f, "");
+    else flags = normalizeFlags(flags + f);
+    syncFlagButtons();
+    run();
+  });
+});
+$("flag-edit").addEventListener("input", () => {
+  // accept only valid flag chars, dedupe, normalize order
+  const raw = $("flag-edit").value.toLowerCase().replace(/[^gimsuy]/g, "");
+  flags = normalizeFlags([...new Set(raw.split(""))].join(""));
+  syncFlagButtons();
+  run();
+});
+$("pattern").addEventListener("input", run);
+$("test-text").addEventListener("input", run);
+$("replacement").addEventListener("input", () => {
+  const built = buildRegex($("pattern").value, flags);
+  if (!built.error) renderSubstitution(built.re, $("test-text").value);
+});
+
+// Pattern library buttons
+const libRow = $("lib-row");
+LIBRARY.forEach((entry) => {
+  const b = document.createElement("button");
+  b.className = "lib-btn";
+  b.type = "button";
+  b.textContent = entry.name;
+  b.addEventListener("click", () => {
+    $("pattern").value = entry.pattern;
+    flags = normalizeFlags(entry.flags);
+    $("test-text").value = entry.sample;
+    $("replacement").value = "";
+    syncFlagButtons();
+    run();
+  });
+  libRow.appendChild(b);
+});
+
+/* ---------- Initial sample ---------- */
+(function init() {
+  $("pattern").value = "\\b(\\w+)@(?<domain>[\\w.-]+)\\b";
+  flags = "g";
+  $("test-text").value = "Contact jane@example.com or bob@my-site.org. Empty line below:\n\nEnd.";
+  $("replacement").value = "$1 [at] $<domain>";
+  syncFlagButtons();
+  run();
+})();
+</script>
+</body>
+</html>
