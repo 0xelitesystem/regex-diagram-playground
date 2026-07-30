@@ -609,8 +609,9 @@ function parsePattern(src) {
     i++; // consume [
     let negated = false;
     if (src[i] === "^") { negated = true; i++; }
-    // Leading ] is a literal
-    if (src[i] === "]") { i++; }
+    // In ECMAScript a ] immediately after [ or [^ closes an EMPTY class. It is
+    // NOT a literal the way it is in POSIX: [] never matches, [^] matches any
+    // character, and []] is an empty class followed by a literal ].
     while (i < src.length && src[i] !== "]") {
       if (src[i] === "\\") i += 2; else i++;
     }
@@ -702,7 +703,14 @@ function parsePattern(src) {
     if (c === "[") {
       const cc = readCharClass();
       const q = readQuantifier();
-      const desc = (cc.negated ? "any character NOT in the set: " : "any single character in the set: ") + describeClassInner(cc.inner);
+      let desc;
+      if (cc.inner === "") {
+        desc = cc.negated
+          ? "any character at all, including line terminators (a negated empty class)"
+          : "an empty character class, which never matches anything";
+      } else {
+        desc = (cc.negated ? "any character NOT in the set: " : "any single character in the set: ") + describeClassInner(cc.inner);
+      }
       pushTok(cc.raw + (q ? quantRaw(q) : ""), "t-class", desc + (q ? ", " + quantDesc(q) : ""));
       return;
     }
@@ -750,6 +758,16 @@ function parsePattern(src) {
         i += m[0].length;
         const q = readQuantifier();
         pushTok(m[0] + (q ? quantRaw(q) : ""), "t-literal", "the character with hex code " + m[1] + (q ? ", " + quantDesc(q) : ""));
+        return;
+      }
+      // \cX control escape: \cJ is the character U+000A, not the letters c and J
+      m = /^\\c([A-Za-z])/.exec(src.slice(i));
+      if (m) {
+        i += m[0].length;
+        const q = readQuantifier();
+        const code = m[1].toUpperCase().charCodeAt(0) - 64;
+        pushTok(m[0] + (q ? quantRaw(q) : ""), "t-literal",
+          "the control character Ctrl-" + m[1].toUpperCase() + " (character code " + code + ")" + (q ? ", " + quantDesc(q) : ""));
         return;
       }
       // \p{...} \P{...} unicode property (requires u flag)
@@ -810,6 +828,11 @@ function parsePattern(src) {
   return { tokens };
 }
 
+// \d \D \w \W \s \S cannot be an endpoint of a range. JavaScript reads the
+// dash in [\w-.] as a literal hyphen, not as a "w to ." range.
+function isClassSetEscape(p) {
+  return p === "\\d" || p === "\\D" || p === "\\w" || p === "\\W" || p === "\\s" || p === "\\S";
+}
 function describeClassInner(inner) {
   // Produce a short readable description of a char-class body.
   const parts = [];
@@ -817,14 +840,18 @@ function describeClassInner(inner) {
   while (j < inner.length) {
     // range like a-z
     const rangeM = /^(\\.|[^\\])-(\\.|[^\\])/.exec(inner.slice(j));
-    if (rangeM && inner[j + (rangeM[1].length)] === "-") {
+    if (rangeM && !isClassSetEscape(rangeM[1]) && !isClassSetEscape(rangeM[2]) && inner[j + (rangeM[1].length)] === "-") {
       parts.push(cleanClassPiece(rangeM[1]) + " to " + cleanClassPiece(rangeM[2]));
       j += rangeM[0].length;
       continue;
     }
     if (inner[j] === "\\") {
       const two = inner.slice(j, j + 2);
-      if (NAMED_CLASS[two]) parts.push(NAMED_CLASS[two]);
+      // Inside a class, \b is a backspace and \B is just the letter B. They are
+      // NOT the word-boundary assertions they are outside a class.
+      if (two === "\\b") parts.push("a backspace character");
+      else if (two === "\\B") parts.push(JSON.stringify("B"));
+      else if (NAMED_CLASS[two]) parts.push(NAMED_CLASS[two]);
       else if (ESCAPED_LITERAL[two]) parts.push(ESCAPED_LITERAL[two]);
       else parts.push(JSON.stringify(inner[j + 1]));
       j += 2;
@@ -837,6 +864,7 @@ function describeClassInner(inner) {
 }
 function cleanClassPiece(p) {
   if (p.startsWith("\\")) {
+    if (p === "\\b") return "a backspace character";
     if (ESCAPED_LITERAL[p]) return ESCAPED_LITERAL[p];
     return JSON.stringify(p[1]);
   }
@@ -910,7 +938,7 @@ function buildAst(src) {
     if (c === "[") {
       const start = i; i++;
       if (src[i] === "^") i++;
-      if (src[i] === "]") i++;
+      // A ] here closes an empty class in ECMAScript; it is not a literal.
       while (i < src.length && src[i] !== "]") { if (src[i] === "\\") i += 2; else i++; }
       if (src[i] === "]") i++;
       const raw = src.slice(start, i);
@@ -1112,15 +1140,25 @@ function renderDiagram(src) {
    ReDoS HEURISTIC
    Flags shapes prone to catastrophic backtracking:
    - nested quantifiers: a quantified group whose body is itself
-     quantified, e.g. (a+)+ , (a*)* , (\d+)+
+     quantified AND ambiguous, e.g. (a+)+ , (a*)* , (\d+)+
    - overlapping alternation under a quantifier, e.g. (a|a)*
+   A repeated group only blows up when the inner repetition is
+   ambiguous. (?:-[a-z0-9]+)* is safe because every iteration must
+   start with "-", which [a-z0-9] can never match, so there is exactly
+   one way to split the input. That disjointness test is what keeps
+   this from crying wolf on the standard safe rewrites.
    Heuristic only; absence of a warning is not a guarantee.
    ============================================================ */
 function redosCheck(src) {
   const findings = [];
+  let inTopClass = false;
   // Scan for groups followed by a quantifier, then inspect the body.
   for (let i = 0; i < src.length; i++) {
-    if (src[i] !== "(") continue;
+    const c0 = src[i];
+    if (c0 === "\\") { i++; continue; }                       // \( is not a group
+    if (inTopClass) { if (c0 === "]") inTopClass = false; continue; }
+    if (c0 === "[") { inTopClass = true; continue; }          // [(] is not a group
+    if (c0 !== "(") continue;
     // find matching close paren
     let depth = 0, j = i, inClass = false;
     for (; j < src.length; j++) {
@@ -1131,13 +1169,13 @@ function redosCheck(src) {
       if (ch === "(") depth++;
       else if (ch === ")") { depth--; if (depth === 0) break; }
     }
-    if (depth !== 0) break; // unbalanced; let the engine report it
+    if (depth !== 0) continue; // unbalanced from here; let the engine report it
     const after = src[j + 1];
     const groupQuantified = after === "*" || after === "+" || (after === "{" && /^\{\d+,?\d*\}/.test(src.slice(j + 1)));
     if (!groupQuantified) continue;
     const body = src.slice(i + 1, j).replace(/^\?(:|=|!|<=|<!|<[A-Za-z_$][\w$]*>)/, "");
     // nested quantifier inside the body, applied to a token (not inside a class)
-    if (hasFreeQuantifier(body)) {
+    if (hasFreeQuantifier(body) && hasAmbiguousInnerQuantifier(body)) {
       findings.push("a repeated group whose contents are themselves repeated (for example " + "(a+)+ style)");
     } else if (overlappingAlternation(body)) {
       findings.push("a repeated group with overlapping alternatives (for example (a|a)* style)");
@@ -1154,6 +1192,111 @@ function hasFreeQuantifier(body) {
     if (ch === "[") { inClass = true; continue; }
     if (ch === "*" || ch === "+") return true;
     if (ch === "{" && /^\{\d*,\d*\}|^\{\d+,\}/.test(body.slice(k))) return true;
+  }
+  return false;
+}
+
+/* Characters probed to decide whether two single-character atoms can ever match
+   the same character. ASCII plus a few others; cheap and good enough here. */
+const OVERLAP_PROBE = (function () {
+  const out = [];
+  for (let c = 32; c < 127; c++) out.push(String.fromCharCode(c));
+  out.push("\t", "\n", "\r", "\u00e9", "\u0416", "\u4e2d", "\u{1F600}");
+  return out;
+})();
+function atomMatcher(a) {
+  try { return new RegExp("^(?:" + a + ")$", "u"); } catch (e) { /* try without u */ }
+  try { return new RegExp("^(?:" + a + ")$"); } catch (e) { return null; }
+}
+function atomsCanShareChar(a, b) {
+  const ra = atomMatcher(a), rb = atomMatcher(b);
+  if (!ra || !rb) return true; // cannot tell, so assume the worst
+  for (let k = 0; k < OVERLAP_PROBE.length; k++) {
+    if (ra.test(OVERLAP_PROBE[k]) && rb.test(OVERLAP_PROBE[k])) return true;
+  }
+  return false;
+}
+function atomIsSingleChar(a) {
+  if (a.length === 1) return "()|[]".indexOf(a) === -1;
+  return a.charAt(0) === "[" || a.charAt(0) === "\\";
+}
+function atomIsZeroWidth(a) {
+  return a === "^" || a === "$" || a === "\\b" || a === "\\B" ||
+    a.slice(0, 3) === "(?=" || a.slice(0, 3) === "(?!" ||
+    a.slice(0, 4) === "(?<=" || a.slice(0, 4) === "(?<!";
+}
+function quantRepeats(q) {
+  if (!q) return false;
+  const c = q.charAt(0);
+  return c === "*" || c === "+" || /^\{\d*,\d*\}/.test(q);
+}
+function quantOptional(q) {
+  if (!q) return false;
+  const c = q.charAt(0);
+  return c === "?" || c === "*" || /^\{0[,}]/.test(q);
+}
+/* Split a group body into its top-level atoms, each with its own quantifier.
+   Returns null when the body cannot be split confidently. */
+function splitBodyAtoms(body) {
+  const atoms = [];
+  let k = 0;
+  while (k < body.length) {
+    const start = k;
+    const ch = body.charAt(k);
+    if (ch === "|" || ch === ")" || ch === "*" || ch === "+" || ch === "?") return null;
+    if (ch === "\\") {
+      const rest = body.slice(start);
+      const em = /^\\u\{[0-9a-fA-F]+\}/.exec(rest) || /^\\u[0-9a-fA-F]{4}/.exec(rest) ||
+        /^\\x[0-9a-fA-F]{2}/.exec(rest) || /^\\[pP]\{[^}]*\}/.exec(rest) ||
+        /^\\k<[A-Za-z_$][\w$]*>/.exec(rest);
+      k = start + (em ? em[0].length : 2);
+    } else if (ch === "[") {
+      k++;
+      if (body.charAt(k) === "^") k++;
+      while (k < body.length && body.charAt(k) !== "]") { if (body.charAt(k) === "\\") k += 2; else k++; }
+      if (k >= body.length) return null;
+      k++;
+    } else if (ch === "(") {
+      let d = 0, inC = false, closed = false;
+      for (; k < body.length; k++) {
+        const c2 = body.charAt(k);
+        if (c2 === "\\") { k++; continue; }
+        if (inC) { if (c2 === "]") inC = false; continue; }
+        if (c2 === "[") { inC = true; continue; }
+        if (c2 === "(") d++;
+        else if (c2 === ")") { d--; if (d === 0) { k++; closed = true; break; } }
+      }
+      if (!closed) return null;
+    } else {
+      k++;
+    }
+    if (k <= start) return null; // never loop forever
+    const atomSrc = body.slice(start, k);
+    let quant = "";
+    const qm = /^(?:[*+?]|\{\d+(?:,\d*)?\})\??/.exec(body.slice(k));
+    if (qm) { quant = qm[0]; k += qm[0].length; }
+    atoms.push({ src: atomSrc, quant: quant });
+  }
+  return atoms.length ? atoms : null;
+}
+/* True when a repetition inside the body is ambiguous, which is the thing that
+   turns a repeated group into an exponential backtracker. If the repeated atom
+   is always followed (wrapping around the loop) by something it can never
+   match, each iteration boundary is forced and the group is safe. */
+function hasAmbiguousInnerQuantifier(body) {
+  const atoms = splitBodyAtoms(body);
+  if (!atoms) return true; // cannot analyse it, so keep warning
+  for (let a = 0; a < atoms.length; a++) {
+    if (!quantRepeats(atoms[a].quant)) continue;
+    if (atomIsZeroWidth(atoms[a].src)) continue;
+    if (!atomIsSingleChar(atoms[a].src)) return true; // a repeated group or run
+    for (let step = 1; step <= atoms.length; step++) {
+      const nxt = atoms[(a + step) % atoms.length];
+      if (atomIsZeroWidth(nxt.src)) continue;
+      if (!atomIsSingleChar(nxt.src)) return true;
+      if (atomsCanShareChar(atoms[a].src, nxt.src)) return true;
+      if (!quantOptional(nxt.quant)) break; // mandatory and disjoint: unambiguous
+    }
   }
   return false;
 }
@@ -1200,8 +1343,13 @@ function buildRegex(src, fl) {
   }
 }
 
+// How many matches get their own detail card. Rendering one DOM node per match
+// on a large paste locks the tab, and nobody reads 100000 cards anyway.
+const MATCH_LIST_LIMIT = 2000;
+
 function collectMatches(re, text) {
   const matches = [];
+  matches.truncated = false;
   if (re.global || re.sticky) {
     re.lastIndex = 0;
     let m;
@@ -1212,7 +1360,7 @@ function collectMatches(re, text) {
       if (m.index === re.lastIndex) {
         re.lastIndex++;
       }
-      if (++guard > 100000) break; // hard cap, defensive
+      if (++guard > 100000) { matches.truncated = true; break; } // hard cap, defensive
       if (re.lastIndex > text.length) break;
     }
   } else {
@@ -1236,7 +1384,7 @@ function renderHighlight(text, matches) {
     html += escapeHtml(text.slice(pos, start));
     if (m[0].length === 0) {
       // zero-length match marker
-      html += '<mark class="' + (alt ? "alt" : "") + '" title="zero-length match">​</mark>';
+      html += '<mark class="' + (alt ? "alt" : "") + '" title="zero-length match">&#8203;</mark>';
     } else {
       html += '<mark class="' + (alt ? "alt" : "") + '">' + escapeHtml(m[0]) + "</mark>";
     }
@@ -1254,7 +1402,8 @@ function renderMatchList(matches) {
     list.innerHTML = '<div class="no-match">No match.</div>';
     return;
   }
-  matches.forEach((m, idx) => {
+  const shown = matches.length > MATCH_LIST_LIMIT ? matches.slice(0, MATCH_LIST_LIMIT) : matches;
+  shown.forEach((m, idx) => {
     const item = document.createElement("div");
     item.className = "match-item";
 
@@ -1291,6 +1440,13 @@ function renderMatchList(matches) {
     }
     list.appendChild(item);
   });
+  if (matches.length > shown.length) {
+    const more = document.createElement("div");
+    more.className = "no-match";
+    more.textContent = "Showing the first " + shown.length + " of " + matches.length +
+      " matches. Every match found is still highlighted above.";
+    list.appendChild(more);
+  }
 }
 
 function renderExplanation(src) {
@@ -1403,6 +1559,7 @@ function run() {
   renderSubstitution(built.re, text);
 
   if (!text) $("match-count").textContent = "";
+  else if (matches.truncated) $("match-count").textContent = "more than " + matches.length + " matches (search stopped at the cap)";
   else $("match-count").textContent = matches.length + (matches.length === 1 ? " match" : " matches");
 }
 

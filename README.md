@@ -7,7 +7,7 @@ Build, test, and understand JavaScript regular expressions in your browser. No s
 ## What it does
 
 - **Live match highlighting.** Type a pattern, toggle flags (`g`, `i`, `m`, `s`, `u`, `y`), and watch every match light up in your test text as you type.
-- **Match details.** For each match: its index, the full matched text, and every capture group (numbered and named). Says "No match" plainly when there is nothing to show.
+- **Match details.** For each match: its index, the full matched text, and every capture group (numbered and named). Says "No match" plainly when there is nothing to show. On very large inputs the detail cards stop at the first 2000 matches so the tab stays responsive; it tells you when it does, and every match found is still highlighted.
 - **Plain-English explanation.** A token-by-token breakdown of the pattern: literals, character classes, quantifiers, anchors, groups, alternation, lookarounds, and backreferences. Unknown constructs are labeled honestly rather than guessed at.
 - **Structure diagram.** A simple SVG railroad-style diagram of the pattern (sequences, alternation, groups, quantifiers). If a construct is too complex to draw cleanly, it falls back to the explanation instead of breaking.
 - **Substitution preview.** Type a replacement string with `$1` (numbered groups), `$<name>` (named groups), or `$&` (whole match), and see the replaced output live.
