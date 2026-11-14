@@ -1,8 +1,8 @@
-# Regex Studio
+# Regex Diagram Playground
 
 Build, test, and understand JavaScript regular expressions in your browser. No server, no tracking, no third-party scripts.
 
-**Live demo:** https://0xelitesystem.github.io/regex-studio/
+**Live demo:** https://0xelitesystem.github.io/regex-diagram-playground/
 
 ## What it does
 
@@ -39,8 +39,8 @@ Everything runs in your browser. Your pattern, your flags, your test text, and y
 ## Run locally
 
 ```bash
-git clone https://github.com/0xelitesystem/regex-studio
-cd regex-studio
+git clone https://github.com/0xelitesystem/regex-diagram-playground
+cd regex-diagram-playground
 # Open index.html in your browser, or:
 python -m http.server 8000
 ```
