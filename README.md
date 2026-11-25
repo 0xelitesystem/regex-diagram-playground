@@ -61,4 +61,4 @@ MIT.
 
 - [regex-tester](https://github.com/0xelitesystem/regex-tester), minimal pattern and test-text matcher
 - [regex-tester-with-explainer](https://github.com/0xelitesystem/regex-tester-with-explainer), matcher with a plain-English breakdown
-- [regex-redos-checker](https://github.com/0xelitesystem/regex-redos-checker), standalone catastrophic-backtracking checker
+- [redos-evil-input-finder](https://github.com/0xelitesystem/redos-evil-input-finder), standalone catastrophic-backtracking checker
