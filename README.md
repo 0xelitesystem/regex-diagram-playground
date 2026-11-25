@@ -59,6 +59,6 @@ MIT.
 
 ## Related
 
-- [regex-tester](https://github.com/0xelitesystem/regex-tester), minimal pattern and test-text matcher
+- [js-regex-capture-tester](https://github.com/0xelitesystem/js-regex-capture-tester), minimal pattern and test-text matcher
 - [regex-tester-with-explainer](https://github.com/0xelitesystem/regex-tester-with-explainer), matcher with a plain-English breakdown
 - [redos-evil-input-finder](https://github.com/0xelitesystem/redos-evil-input-finder), standalone catastrophic-backtracking checker
